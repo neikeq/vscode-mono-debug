@@ -431,6 +431,7 @@ namespace VSCodeDebug
 						_breakpoints.Clear();
 						_session.Breakpoints.Clear();
 						_session.Continue();
+						_session.Detach();
 						_session = null;
 					}
 				}
