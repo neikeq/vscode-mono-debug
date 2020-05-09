@@ -27,29 +27,33 @@ namespace VSCodeDebug
 		private const int CONNECTION_ATTEMPT_INTERVAL = 500;
 
 		private AutoResetEvent _resumeEvent = new AutoResetEvent(false);
-		private bool _debuggeeExecuting = false;
-		private readonly object _lock = new object();
-		private Mono.Debugging.Soft.SoftDebuggerSession _session;
-		private volatile bool _debuggeeKilled = true;
+		protected bool _debuggeeExecuting = false;
+		protected readonly object _lock = new object();
+		protected Mono.Debugging.Soft.SoftDebuggerSession _session;
+		protected volatile bool _debuggeeKilled = true;
 		private ProcessInfo _activeProcess;
 		private Mono.Debugging.Client.StackFrame _activeFrame;
 		private long _nextBreakpointId = 0;
 		private SortedDictionary<long, BreakEvent> _breakpoints;
 		private List<Catchpoint> _catchpoints;
-		private DebuggerSessionOptions _debuggerSessionOptions;
+		protected DebuggerSessionOptions _debuggerSessionOptions;
 
 		private System.Diagnostics.Process _process;
 		private Handles<ObjectValue[]> _variableHandles;
 		private Handles<Mono.Debugging.Client.StackFrame> _frameHandles;
 		private ObjectValue _exception;
 		private Dictionary<int, Thread> _seenThreads = new Dictionary<int, Thread>();
-		private bool _attachMode = false;
+		protected bool _attachMode = false;
 		private bool _terminated = false;
-		private bool _stderrEOF = true;
-		private bool _stdoutEOF = true;
+		protected bool _stderrEOF = true;
+		protected bool _stdoutEOF = true;
+
+		public MonoDebugSession() : this(new Mono.Debugging.Soft.SoftDebuggerSession(), new CustomLogger())
+		{
+		}
 
 
-		public MonoDebugSession() : base()
+		protected MonoDebugSession(Mono.Debugging.Soft.SoftDebuggerSession session, ICustomLogger logger) : base()
 		{
 			_variableHandles = new Handles<ObjectValue[]>();
 			_frameHandles = new Handles<Mono.Debugging.Client.StackFrame>();
@@ -59,13 +63,13 @@ namespace VSCodeDebug
 				EvaluationOptions = EvaluationOptions.DefaultOptions
 			};
 
-			_session = new Mono.Debugging.Soft.SoftDebuggerSession();
+			_session = session;
 			_session.Breakpoints = new BreakpointStore();
 
 			_breakpoints = new SortedDictionary<long, BreakEvent>();
 			_catchpoints = new List<Catchpoint>();
 
-			DebuggerLoggingService.CustomLogger = new CustomLogger();
+			DebuggerLoggingService.CustomLogger = logger;
 
 			_session.ExceptionHandler = ex => {
 				return true;
@@ -767,7 +771,7 @@ namespace VSCodeDebug
 
 		//---- private ------------------------------------------
 
-		private void SetExceptionBreakpoints(dynamic exceptionOptions)
+		protected void SetExceptionBreakpoints(dynamic exceptionOptions)
 		{
 			if (exceptionOptions != null) {
 
@@ -803,7 +807,7 @@ namespace VSCodeDebug
 			}
 		}
 
-		private void SendOutput(string category, string data) {
+		protected void SendOutput(string category, string data) {
 			if (!String.IsNullOrEmpty(data)) {
 				if (data[data.Length-1] != '\n') {
 					data += '\n';
@@ -881,7 +885,7 @@ namespace VSCodeDebug
 			return dflt;
 		}
 
-		private static int getInt(dynamic container, string propertyName, int dflt = 0)
+		protected static int getInt(dynamic container, string propertyName, int dflt = 0)
 		{
 			try {
 				return (int)container[propertyName];
@@ -892,7 +896,7 @@ namespace VSCodeDebug
 			return dflt;
 		}
 
-		private static string getString(dynamic args, string property, string dflt = null)
+		protected static string getString(dynamic args, string property, string dflt = null)
 		{
 			var s = (string)args[property];
 			if (s == null) {
@@ -968,7 +972,7 @@ namespace VSCodeDebug
 			}
 		}
 
-		private void DebuggerKill()
+		protected void DebuggerKill()
 		{
 			lock (_lock) {
 				if (_session != null) {
